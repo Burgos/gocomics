@@ -2,10 +2,13 @@ package main
 
 import (
 	"log"
+	"os"
+	"strings"
 	"net/http"
 	"html/template"
 	"database/sql"
     _ "github.com/mattn/go-sqlite3"
+	"encoding/json"
 )
 
 type ComicBook struct {
@@ -50,19 +53,80 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func imageHandler(w http.ResponseWriter, r *http.Request) {
-	row := db.QueryRow("SELECT slika FROM zlatna_serija WHERE id = $1", r.URL.Path[len("/image/"):])
+	img_id := r.URL.Path[len("/image/"):len(r.URL.Path) - len(".jpg")]
+	row := db.QueryRow("SELECT slicica FROM zlatna_serija WHERE id = $1", img_id)
 	
 	var image []byte
 	err := row.Scan(&image)
 	if err != nil { panic(err) }
+	key := "zlatna_serija_small" + img_id
+    e := `"` + key + `"`
+    w.Header().Set("Etag", e)
+	w.Header().Set("Cache-Control", "max-age=2592000")
+	
+	if match := r.Header.Get("If-None-Match"); match != "" {
+		if strings.Contains(match, e) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+    }
+	
 	w.Write(image)
 }
 
-func main() {
-	var err error
-	db, err = sql.Open("sqlite3", "./stripovi.s3db")
+func fullImageHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("full path: %s", r.URL.Path)
+	img_id := r.URL.Path[len("/full_image/"):len(r.URL.Path) - len(".jpg")]
+	row := db.QueryRow("SELECT slika FROM zlatna_serija WHERE id = $1", img_id)
+	
+	var image []byte
+	err := row.Scan(&image)
+	if err != nil { panic(err) }
+	key := "zlatna_serija_full" + img_id
+    e := `"` + key + `"`
+    w.Header().Set("Etag", e)
+	w.Header().Set("Cache-Control", "max-age=2592000")
+	
+	if match := r.Header.Get("If-None-Match"); match != "" {
+		if strings.Contains(match, e) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+    }
+	
+	w.Write(image)
+}
+
+func toggleHandler(w http.ResponseWriter, r *http.Request) {
+	stmt, err := db.Prepare("UPDATE zlatna_serija SET stanje = CASE stanje WHEN 1 THEN 0 ELSE 1 END WHERE id = ?")
+	if err != nil { panic(err) }
+	id := r.URL.Path[len("/toggle_status/"):]
+	_, err = stmt.Exec(id)
+	if err != nil { panic(err) }
+	http.Redirect(w, r, "/", 302)
+}
+
+
+func main() {	
+	type Config struct {
+		Database string
+		BindAddress string
+	}
+	
+	// https://stackoverflow.com/questions/16465705/how-to-handle-configuration-in-go
+	file, err := os.Open("conf.json")
+	if err != nil { panic(err) }
+	defer file.Close()
+	decoder := json.NewDecoder(file)
+	config := Config{}
+	err = decoder.Decode(&config)
+	if err != nil { panic(err) }
+		
+	db, err = sql.Open("sqlite3", config.Database)
 	if err != nil { panic(err) }
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/image/", imageHandler)
-	log.Fatal(http.ListenAndServe("127.0.0.1:8080", nil))
+	http.HandleFunc("/toggle_status/", toggleHandler)
+	http.HandleFunc("/full_image/", fullImageHandler)
+	log.Fatal(http.ListenAndServe(config.BindAddress, nil))
 }

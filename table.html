@@ -5,11 +5,11 @@
 <body>
 	<table>
 	{{range .}}<tr>
-		<td>{{ if .Status }}Have it{{else}} Don't have it{{end}}</td>
+		<td><a href="/toggle_status/{{.Number}}">{{ if .Status }}Have it{{else}} Don't have it{{end}}</a></td>
 		<td>{{.Number}}</td>
 		<td>{{.Hero}}</td>
-		<td>{{.Title}}</td>
-		<td><img src="/image/{{.Number}}"></td>
+		<td><a href="full_image/{{.Number}}.jpg">{{.Title}}</a></td>
+		<td><img src="/image/{{.Number}}.jpg"></td>
 	</tr>{{end}}
 	</table>
 </body>
