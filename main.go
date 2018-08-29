@@ -124,9 +124,13 @@ func main() {
 		
 	db, err = sql.Open("sqlite3", config.Database)
 	if err != nil { panic(err) }
+	log.Printf("Loaded database from %s", config.Database)
+	
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/image/", imageHandler)
 	http.HandleFunc("/toggle_status/", toggleHandler)
 	http.HandleFunc("/full_image/", fullImageHandler)
+	
+	log.Printf("Listening on %s", config.BindAddress)
 	log.Fatal(http.ListenAndServe(config.BindAddress, nil))
 }

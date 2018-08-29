@@ -1,4 +1,4 @@
 {
-	"Database":"stripovi.s3db",
+	"Database":"Z:\\KatalogStripova\\stripovi.s3db",
 	"BindAddress":"127.0.0.1:8080"
 }
