@@ -1,0 +1,16 @@
+<html>
+<head>
+<title>Comic books</title>
+</head>
+<body>
+	<table>
+	{{range .}}<tr>
+		<td>{{ if .Status }}Have it{{else}} Don't have it{{end}}</td>
+		<td>{{.Number}}</td>
+		<td>{{.Hero}}</td>
+		<td>{{.Title}}</td>
+		<td><img src="/image/{{.Number}}"></td>
+	</tr>{{end}}
+	</table>
+</body>
+</html>
