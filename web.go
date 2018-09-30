@@ -65,6 +65,7 @@ func checkAccess(user string, pass string) bool {
 func handler(w http.ResponseWriter, r *http.Request) {
 	user, pass, _ := r.BasicAuth()
 	if !checkAccess(user, pass) {
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"Stripovi\"")
 		http.Error(w, "Unauthorized.", 401)
 		return
 	}
@@ -84,6 +85,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func imageHandler(w http.ResponseWriter, r *http.Request) {
 	user, pass, _ := r.BasicAuth()
 	if !checkAccess(user, pass) {
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"Stripovi\"")
 		http.Error(w, "Unauthorized.", 401)
 		return
 	}
@@ -114,6 +116,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 func fullImageHandler(w http.ResponseWriter, r *http.Request) {
 	user, pass, _ := r.BasicAuth()
 	if !checkAccess(user, pass) {
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"Stripovi\"")
 		http.Error(w, "Unauthorized.", 401)
 		return
 	}
@@ -145,6 +148,7 @@ func fullImageHandler(w http.ResponseWriter, r *http.Request) {
 func toggleHandler(w http.ResponseWriter, r *http.Request) {
 	user, pass, _ := r.BasicAuth()
 	if !checkAccess(user, pass) {
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"Stripovi\"")
 		http.Error(w, "Unauthorized.", 401)
 		return
 	}
