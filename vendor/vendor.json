@@ -3,6 +3,10 @@
 	"ignore": "test",
 	"package": [
 		{
+			"path": "get",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "xvqMCXXlR74in/1c09UadpfXz9Y=",
 			"path": "github.com/lib/pq",
 			"revision": "4ded0e9383f75c197b3a2aaa6d590ac52df6fd79",
@@ -19,6 +23,22 @@
 			"path": "github.com/mattn/go-sqlite3",
 			"revision": "0a88db3545c4089ce0f555f496bfc78c491699e5",
 			"revisionTime": "2018-09-26T09:02:20Z"
+		},
+		{
+			"path": "go",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "oCH3J96RWvO8W4xjix47PModpio=",
+			"path": "golang.org/x/crypto/bcrypt",
+			"revision": "5295e8364332db77d75fce11f1d19c053919a9c9",
+			"revisionTime": "2018-06-14T21:10:25Z"
+		},
+		{
+			"checksumSHA1": "oVPHWesOmZ02vLq2fglGvf+AMgk=",
+			"path": "golang.org/x/crypto/blowfish",
+			"revision": "5295e8364332db77d75fce11f1d19c053919a9c9",
+			"revisionTime": "2018-06-14T21:10:25Z"
 		}
 	],
 	"rootPath": "gocomics"
