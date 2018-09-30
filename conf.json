@@ -1,4 +1,10 @@
 {
-	"Database":"Z:\\KatalogStripova\\stripovi.s3db",
-	"BindAddress":"127.0.0.1:8080"
+	"Database":"/mnt/Storage/KatalogStripova/stripovi.s3db",
+	"BindAddress":"0.0.0.0:8080",
+    "Postgres":"127.0.0.1",
+    "PostgresPort":"5432",
+    "PostgresUser":"comics",
+    "PostgresPassword":"",
+    "PostgresDatabase":"comics",
+    "PostgresTable":"comics"
 }

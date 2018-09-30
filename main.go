@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"log"
@@ -12,6 +14,7 @@ import (
 )
 
 type ComicBook struct {
+	Id     int
 	Status bool
 	Number int
 	Title  string
@@ -27,14 +30,14 @@ func comicAtId(id int, status bool) ComicBook {
 
 func getBooks() []ComicBook {
 	books := make([]ComicBook, 0)
-	rows, err := db.Query("SELECT id, junak, naslov, stanje FROM zlatna_serija")
+	rows, err := db.Query("SELECT id, broj, junak, naslov, stanje FROM comics ORDER by broj")
 	if err != nil {
 		panic(err)
 	}
 
 	var book ComicBook
 	for rows.Next() {
-		err = rows.Scan(&book.Number, &book.Hero, &book.Title, &book.Status)
+		err = rows.Scan(&book.Id, &book.Number, &book.Hero, &book.Title, &book.Status)
 		if err != nil {
 			panic(err)
 		}
@@ -59,7 +62,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func imageHandler(w http.ResponseWriter, r *http.Request) {
 	img_id := r.URL.Path[len("/image/") : len(r.URL.Path)-len(".jpg")]
-	row := db.QueryRow("SELECT slicica FROM zlatna_serija WHERE id = $1", img_id)
+	row := db.QueryRow("SELECT slicica FROM comics WHERE id = $1", img_id)
 
 	var image []byte
 	err := row.Scan(&image)
@@ -84,7 +87,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 func fullImageHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("full path: %s", r.URL.Path)
 	img_id := r.URL.Path[len("/full_image/") : len(r.URL.Path)-len(".jpg")]
-	row := db.QueryRow("SELECT slika FROM zlatna_serija WHERE id = $1", img_id)
+	row := db.QueryRow("SELECT slika FROM comics WHERE id = $1", img_id)
 
 	var image []byte
 	err := row.Scan(&image)
@@ -107,13 +110,15 @@ func fullImageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func toggleHandler(w http.ResponseWriter, r *http.Request) {
-	stmt, err := db.Prepare("UPDATE zlatna_serija SET stanje = CASE stanje WHEN 1 THEN 0 ELSE 1 END WHERE id = ?")
+	query := "UPDATE comics SET stanje = CASE stanje WHEN TRUE THEN FALSE ELSE TRUE END WHERE id = $1"
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		panic(err)
 	}
 	id := r.URL.Path[len("/toggle_status/"):]
 	_, err = stmt.Exec(id)
 	if err != nil {
+		log.Printf("Failed executing %s for %s\n", query, id)
 		panic(err)
 	}
 	http.Redirect(w, r, "/", 302)
@@ -121,8 +126,14 @@ func toggleHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	type Config struct {
-		Database    string
-		BindAddress string
+		Database         string
+		BindAddress      string
+		Postgres         string
+		PostgresPort     string
+		PostgresUser     string
+		PostgresPassword string
+		PostgresDatabase string
+		PostgresTable    string
 	}
 
 	// https://stackoverflow.com/questions/16465705/how-to-handle-configuration-in-go
@@ -138,11 +149,32 @@ func main() {
 		panic(err)
 	}
 
-	db, err = sql.Open("sqlite3", config.Database)
-	if err != nil {
-		panic(err)
+	if config.Postgres == "" {
+		db, err = sql.Open("sqlite3", config.Database)
+		if err != nil {
+			panic(err)
+		}
+		defer db.Close()
+		log.Printf("Loaded database from %s", config.Database)
+	} else {
+		psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
+			"password=%s dbname=%s sslmode=disable",
+			config.Postgres, config.PostgresPort, config.PostgresUser,
+			config.PostgresPassword, config.PostgresDatabase)
+
+		db, err = sql.Open("postgres", psqlInfo)
+		if err != nil {
+			panic(err)
+		}
+		defer db.Close()
+
+		err = db.Ping()
+		if err != nil {
+			panic(err)
+		}
+
+		log.Printf("Successfully connected to postgres")
 	}
-	log.Printf("Loaded database from %s", config.Database)
 
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/image/", imageHandler)
