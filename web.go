@@ -2,10 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"log"
 	"net/http"
@@ -126,61 +123,33 @@ func toggleHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	type Config struct {
-		Database         string
-		BindAddress      string
-		Postgres         string
-		PostgresPort     string
-		PostgresUser     string
-		PostgresPassword string
-		PostgresDatabase string
-		PostgresTable    string
+		Port     string
+		Postgres string
 	}
 
-	// https://stackoverflow.com/questions/16465705/how-to-handle-configuration-in-go
-	file, err := os.Open("conf.json")
+	var config Config
+	config.Port = os.Getenv("PORT")
+	config.Postgres = os.Getenv("DATABASE_URL")
+
+	var err error
+	db, err = sql.Open("postgres", config.Postgres)
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
-	decoder := json.NewDecoder(file)
-	config := Config{}
-	err = decoder.Decode(&config)
+	defer db.Close()
+
+	err = db.Ping()
 	if err != nil {
 		panic(err)
 	}
 
-	if config.Postgres == "" {
-		db, err = sql.Open("sqlite3", config.Database)
-		if err != nil {
-			panic(err)
-		}
-		defer db.Close()
-		log.Printf("Loaded database from %s", config.Database)
-	} else {
-		psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
-			"password=%s dbname=%s sslmode=disable",
-			config.Postgres, config.PostgresPort, config.PostgresUser,
-			config.PostgresPassword, config.PostgresDatabase)
-
-		db, err = sql.Open("postgres", psqlInfo)
-		if err != nil {
-			panic(err)
-		}
-		defer db.Close()
-
-		err = db.Ping()
-		if err != nil {
-			panic(err)
-		}
-
-		log.Printf("Successfully connected to postgres")
-	}
+	log.Printf("Successfully connected to postgres")
 
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/image/", imageHandler)
 	http.HandleFunc("/toggle_status/", toggleHandler)
 	http.HandleFunc("/full_image/", fullImageHandler)
 
-	log.Printf("Listening on %s", config.BindAddress)
-	log.Fatal(http.ListenAndServe(config.BindAddress, nil))
+	log.Printf("Listening on %s", config.Port)
+	log.Fatal(http.ListenAndServe(":"+config.Port, nil))
 }
