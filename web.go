@@ -3,12 +3,23 @@ package main
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 )
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
 
 type ComicBook struct {
 	Id     int
@@ -44,7 +55,20 @@ func getBooks() []ComicBook {
 	return books
 }
 
+func checkAccess(user string, pass string) bool {
+	if user == os.Getenv("USER") && CheckPasswordHash(pass, os.Getenv("password_hash")) {
+		return true
+	}
+	return false
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
+	user, pass, _ := r.BasicAuth()
+	if !checkAccess(user, pass) {
+		http.Error(w, "Unauthorized.", 401)
+		return
+	}
+
 	books := getBooks()
 
 	t, err := template.ParseFiles("table.html")
@@ -58,6 +82,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func imageHandler(w http.ResponseWriter, r *http.Request) {
+	user, pass, _ := r.BasicAuth()
+	if !checkAccess(user, pass) {
+		http.Error(w, "Unauthorized.", 401)
+		return
+	}
+
 	img_id := r.URL.Path[len("/image/") : len(r.URL.Path)-len(".jpg")]
 	row := db.QueryRow("SELECT slicica FROM comics WHERE id = $1", img_id)
 
@@ -82,6 +112,12 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fullImageHandler(w http.ResponseWriter, r *http.Request) {
+	user, pass, _ := r.BasicAuth()
+	if !checkAccess(user, pass) {
+		http.Error(w, "Unauthorized.", 401)
+		return
+	}
+
 	log.Printf("full path: %s", r.URL.Path)
 	img_id := r.URL.Path[len("/full_image/") : len(r.URL.Path)-len(".jpg")]
 	row := db.QueryRow("SELECT slika FROM comics WHERE id = $1", img_id)
@@ -107,6 +143,12 @@ func fullImageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func toggleHandler(w http.ResponseWriter, r *http.Request) {
+	user, pass, _ := r.BasicAuth()
+	if !checkAccess(user, pass) {
+		http.Error(w, "Unauthorized.", 401)
+		return
+	}
+
 	query := "UPDATE comics SET stanje = CASE stanje WHEN TRUE THEN FALSE ELSE TRUE END WHERE id = $1"
 	stmt, err := db.Prepare(query)
 	if err != nil {
