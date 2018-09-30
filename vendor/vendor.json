@@ -13,6 +13,12 @@
 			"path": "github.com/lib/pq/oid",
 			"revision": "4ded0e9383f75c197b3a2aaa6d590ac52df6fd79",
 			"revisionTime": "2018-08-23T06:29:44Z"
+		},
+		{
+			"checksumSHA1": "FDMDonjRj1H49UMKS0ubmDA1bz4=",
+			"path": "github.com/mattn/go-sqlite3",
+			"revision": "0a88db3545c4089ce0f555f496bfc78c491699e5",
+			"revisionTime": "2018-09-26T09:02:20Z"
 		}
 	],
 	"rootPath": "gocomics"
