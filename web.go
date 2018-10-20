@@ -83,13 +83,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func imageHandler(w http.ResponseWriter, r *http.Request) {
-	user, pass, _ := r.BasicAuth()
-	if !checkAccess(user, pass) {
-		w.Header().Set("WWW-Authenticate", "Basic realm=\"Stripovi\"")
-		http.Error(w, "Unauthorized.", 401)
-		return
-	}
-
 	img_id := r.URL.Path[len("/image/") : len(r.URL.Path)-len(".jpg")]
 	row := db.QueryRow("SELECT slicica FROM comics WHERE id = $1", img_id)
 
@@ -114,13 +107,6 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fullImageHandler(w http.ResponseWriter, r *http.Request) {
-	user, pass, _ := r.BasicAuth()
-	if !checkAccess(user, pass) {
-		w.Header().Set("WWW-Authenticate", "Basic realm=\"Stripovi\"")
-		http.Error(w, "Unauthorized.", 401)
-		return
-	}
-
 	log.Printf("full path: %s", r.URL.Path)
 	img_id := r.URL.Path[len("/full_image/") : len(r.URL.Path)-len(".jpg")]
 	row := db.QueryRow("SELECT slika FROM comics WHERE id = $1", img_id)
