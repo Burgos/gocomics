@@ -1,15 +1,15 @@
 <html>
 <head>
-<title>Comic books</title>
+    <title>Comic books</title>
 </head>
 <body>
 	<table>
 	{{range .}}<tr>
-		<td><a href="/toggle_status/{{.Id}}">{{ if .Status }}Have it{{else}} Don't have it{{end}}</a></td>
+        <td><a href="{{.Edicija}}/toggle_status/{{.Id}}">{{ if .Status }}Have it{{else}} Don't have it{{end}}</a></td>
 		<td>{{.Number}}</td>
 		<td>{{.Hero}}</td>
-		<td><a href="full_image/{{.Id}}.jpg">{{.Title}}</a></td>
-		<td><img src="/image/{{.Id}}.jpg"></td>
+        <td><a href="{{.Edicija}}/full_image/{{.Id}}.jpg">{{.Title}}</a></td>
+        <td><img src="{{.Edicija}}/image/{{.Id}}.jpg"></td>
 	</tr>{{end}}
 	</table>
 </body>

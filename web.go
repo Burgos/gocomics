@@ -22,12 +22,13 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
 type ComicBook struct {
-	Id     int
-	Status bool
-	Number int
-	Title  string
-	Hero   string
-	Image  []byte
+	Id      int
+	Status  bool
+	Number  int
+	Title   string
+	Hero    string
+	Edicija string
+	Image   []byte
 }
 
 var db *sql.DB
@@ -36,9 +37,10 @@ func comicAtId(id int, status bool) ComicBook {
 	return ComicBook{Status: status, Number: id, Title: "Lov na coveka"}
 }
 
-func getBooks() []ComicBook {
+func getBooks(edicija string) []ComicBook {
 	books := make([]ComicBook, 0)
-	rows, err := db.Query("SELECT id, broj, junak, naslov, stanje FROM comics ORDER by broj")
+	log.Printf("edicija = '%s'", edicija)
+	rows, err := db.Query("SELECT id, broj, junak, naslov, stanje FROM comics WHERE edicija = $1 ORDER by broj", edicija)
 	if err != nil {
 		panic(err)
 	}
@@ -49,6 +51,7 @@ func getBooks() []ComicBook {
 		if err != nil {
 			panic(err)
 		}
+		book.Edicija = edicija
 		books = append(books, book)
 	}
 
@@ -62,7 +65,7 @@ func checkAccess(user string, pass string) bool {
 	return false
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func handler(edicija string, w http.ResponseWriter, r *http.Request) {
 	user, pass, _ := r.BasicAuth()
 	if !checkAccess(user, pass) {
 		w.Header().Set("WWW-Authenticate", "Basic realm=\"Stripovi\"")
@@ -70,7 +73,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	books := getBooks()
+	books := getBooks(edicija)
 
 	t, err := template.ParseFiles("table.html")
 	if err != nil {
@@ -82,16 +85,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func imageHandler(w http.ResponseWriter, r *http.Request) {
-	img_id := r.URL.Path[len("/image/") : len(r.URL.Path)-len(".jpg")]
-	row := db.QueryRow("SELECT slicica FROM comics WHERE id = $1", img_id)
+func imageHandler(edicija string, w http.ResponseWriter, r *http.Request) {
+	img_id := r.URL.Path[len("/"+edicija+"/image/") : len(r.URL.Path)-len(".jpg")]
+	row := db.QueryRow("SELECT slicica FROM comics WHERE edicija = $1 AND id = $2", edicija, img_id)
 
 	var image []byte
 	err := row.Scan(&image)
 	if err != nil {
 		panic(err)
 	}
-	key := "zlatna_serija_small" + img_id
+	key := edicija + "_small" + img_id
 	e := `"` + key + `"`
 	w.Header().Set("Etag", e)
 	w.Header().Set("Cache-Control", "max-age=2592000")
@@ -106,17 +109,17 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(image)
 }
 
-func fullImageHandler(w http.ResponseWriter, r *http.Request) {
+func fullImageHandler(edicija string, w http.ResponseWriter, r *http.Request) {
 	log.Printf("full path: %s", r.URL.Path)
-	img_id := r.URL.Path[len("/full_image/") : len(r.URL.Path)-len(".jpg")]
-	row := db.QueryRow("SELECT slika FROM comics WHERE id = $1", img_id)
+	img_id := r.URL.Path[len("/"+edicija+"/full_image/") : len(r.URL.Path)-len(".jpg")]
+	row := db.QueryRow("SELECT slika FROM comics WHERE edicija = $1 AND id = $2", edicija, img_id)
 
 	var image []byte
 	err := row.Scan(&image)
 	if err != nil {
 		panic(err)
 	}
-	key := "zlatna_serija_full" + img_id
+	key := edicija + "_full" + img_id
 	e := `"` + key + `"`
 	w.Header().Set("Etag", e)
 	w.Header().Set("Cache-Control", "max-age=2592000")
@@ -131,7 +134,7 @@ func fullImageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(image)
 }
 
-func toggleHandler(w http.ResponseWriter, r *http.Request) {
+func toggleHandler(edicija string, w http.ResponseWriter, r *http.Request) {
 	user, pass, _ := r.BasicAuth()
 	if !checkAccess(user, pass) {
 		w.Header().Set("WWW-Authenticate", "Basic realm=\"Stripovi\"")
@@ -139,18 +142,18 @@ func toggleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "UPDATE comics SET stanje = CASE stanje WHEN TRUE THEN FALSE ELSE TRUE END WHERE id = $1"
+	query := "UPDATE comics SET stanje = CASE stanje WHEN TRUE THEN FALSE ELSE TRUE END WHERE edicija = $1 AND id = $2"
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		panic(err)
 	}
-	id := r.URL.Path[len("/toggle_status/"):]
-	_, err = stmt.Exec(id)
+	id := r.URL.Path[len("/"+edicija+"/toggle_status/"):]
+	_, err = stmt.Exec(edicija, id)
 	if err != nil {
 		log.Printf("Failed executing %s for %s\n", query, id)
 		panic(err)
 	}
-	http.Redirect(w, r, "/", 302)
+	http.Redirect(w, r, "/"+edicija, 302)
 }
 
 func main() {
@@ -177,10 +180,28 @@ func main() {
 
 	log.Printf("Successfully connected to postgres")
 
-	http.HandleFunc("/", handler)
-	http.HandleFunc("/image/", imageHandler)
-	http.HandleFunc("/toggle_status/", toggleHandler)
-	http.HandleFunc("/full_image/", fullImageHandler)
+	edicije := []string{"zlatna_serija", "zagor_redovan", "teks_redovan", "zagor_knjiga"}
+
+	for _, ed := range edicije {
+		edicija := ed
+		http.HandleFunc("/"+edicija,
+			func(w http.ResponseWriter, r *http.Request) {
+				handler(edicija, w, r)
+			})
+
+		http.HandleFunc("/"+edicija+"/image/",
+			func(w http.ResponseWriter, r *http.Request) {
+				imageHandler(edicija, w, r)
+			})
+		http.HandleFunc("/"+edicija+"/toggle_status/",
+			func(w http.ResponseWriter, r *http.Request) {
+				toggleHandler(edicija, w, r)
+			})
+		http.HandleFunc("/"+edicija+"/full_image/",
+			func(w http.ResponseWriter, r *http.Request) {
+				fullImageHandler(edicija, w, r)
+			})
+	}
 
 	log.Printf("Listening on %s", config.Port)
 	log.Fatal(http.ListenAndServe(":"+config.Port, nil))
