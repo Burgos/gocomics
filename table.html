@@ -1,11 +1,38 @@
 <html>
 <head>
-    <title>Comic books</title>
+	<title>Comic books</title>
+	<style type="text/css">
+		tr[status="1"] {
+		    background-color: lightgreen;
+		}
+
+		tr[status="0"] {
+		    background-color: salmon;
+		}
+
+
+		table {
+		    border-collapse:collapse;
+		    width:75%;
+		    margin:auto;
+		}
+		tr {
+			border: solid;
+			border-color:grey;
+			border-width: 1px 0;
+		}
+		tr:first-child {
+			border-top: none;
+		}
+		tr:last-child {
+			border-bottom: none;
+		}
+	</style>
 </head>
 <body>
 	<table>
-	{{range .}}<tr>
-        <td><a href="{{.Edicija}}/toggle_status/{{.Id}}">{{ if .Status }}Have it{{else}} Don't have it{{end}}</a></td>
+		{{range .}}<tr {{ if.Status }}status="1"{{else}}status="0"{{end}}>
+        <td><a href="{{.Edicija}}/toggle_status/{{.Id}}">Toggle</a></td>
 		<td>{{.Number}}</td>
 		<td>{{.Hero}}</td>
         <td><a href="{{.Edicija}}/full_image/{{.Id}}.jpg">{{.Title}}</a></td>
