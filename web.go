@@ -158,11 +158,13 @@ func toggleHandler(edicija string, w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	type Config struct {
+		Address  string
 		Port     string
 		Postgres string
 	}
 
 	var config Config
+	config.Address = os.Getenv("ADDRESS")
 	config.Port = os.Getenv("PORT")
 	config.Postgres = os.Getenv("DATABASE_URL")
 
@@ -204,5 +206,5 @@ func main() {
 	}
 
 	log.Printf("Listening on %s", config.Port)
-	log.Fatal(http.ListenAndServe(":"+config.Port, nil))
+	log.Fatal(http.ListenAndServe(config.Address+":"+config.Port, nil))
 }
