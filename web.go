@@ -182,7 +182,7 @@ func main() {
 
 	log.Printf("Successfully connected to postgres")
 
-	edicije := []string{"zlatna_serija", "zagor_redovan", "teks_redovan", "zagor_knjiga"}
+	edicije := []string{"zlatna_serija", "zagor_redovan", "teks_redovan", "zagor_knjiga", "teks_knjiga"}
 
 	for _, ed := range edicije {
 		edicija := ed
